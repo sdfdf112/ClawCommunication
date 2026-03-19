@@ -191,8 +191,11 @@ const server = http.createServer(async (req, res) => {
     // 讨论 API
     if (url === '/api/discussions') {
       const discDir = path.join(CONFIG.msgDir, '..', 'discussions');
+      console.log('[DEBUG] discDir:', discDir);
+      console.log('[DEBUG] exists:', fs.existsSync(discDir));
       if (!fs.existsSync(discDir)) return res.end('[]');
       const files = fs.readdirSync(discDir).filter(f => f.endsWith('.md')).sort().reverse();
+      console.log('[DEBUG] files:', files);
       const list = files.slice(0, 15).map(f => {
         const content = fs.readFileSync(path.join(discDir, f), 'utf8');
         const title = (content.match(/^#\s+(.+)$/m) || [])[1] || f;
@@ -288,6 +291,7 @@ const watcher = chokidar.watch(CONFIG.msgDir + '/*.json', {
   awaitWriteFinish: { stabilityThreshold: 1000, pollInterval: 100 }
 });
 watcher.on('add', async (p) => {
+  console.log('[WATCHER] 新文件检测:', p);
   const fileName = path.basename(p);
   const raw = fs.readFileSync(p, 'utf8');
   const msg = JSON.parse(raw.replace(/^\uFEFF/, ''));
@@ -296,8 +300,9 @@ watcher.on('add', async (p) => {
   try {
     if (msg.type === 'system') return;
     const targets = (msg.to && msg.to.length) ? msg.to.filter(t => CONFIG.agents[t.toLowerCase()]) : Object.keys(CONFIG.agents);
+    console.log('[WATCHER] 目标AI:', targets);
     targets.forEach(t => wakeAgent(t.toLowerCase(), CONFIG.agents[t.toLowerCase()], msg, msgId));
-  } catch(e) {}
+  } catch(e) { console.log('[WATCHER] 错误:', e.message); }
 });
 
 // ==================== 7. 启动 ====================
