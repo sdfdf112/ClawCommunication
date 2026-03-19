@@ -129,59 +129,14 @@
           else if(t.inProgress) badges += '<span class="badge badge-wait">进行中</span>';
           var statusIcon = t.done?'✅':(t.inProgress?'⏳':'⬜');
           html += '<div class="card" id="task-'+i+'">' +
-            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
             '<span style="cursor:pointer;font-size:1.2rem" onclick="toggleTask('+i+')">'+statusIcon+'</span>' +
-            '<span class="task-title" id="task-title-'+i+'" style="flex:1;min-width:150px;'+(t.done?'text-decoration:line-through;color:#94a3b8':'')+'">'+escape(t.title)+'</span>' +
-            '<input type="text" id="task-input-'+i+'" class="task-input" style="display:none;flex:1;min-width:200px;padding:6px;border:1px solid #3b82f6;border-radius:4px;font-size:1rem" />' +
-            '<button class="btn-blue" style="padding:4px 12px;font-size:0.85rem" onclick="startEditTask('+i+')">修改</button>' +
-            '<button id="task-confirm-'+i+'" class="btn-blue" style="display:none;padding:4px 12px;font-size:0.85rem;background:#16a34a" onclick="saveEditTask('+i+')">确认</button>' +
-            '<button id="task-cancel-'+i+'" class="btn-red" style="display:none;padding:4px 12px;font-size:0.85rem" onclick="cancelEditTask('+i+')">取消</button></div>' +
+            '<span style="flex:1;'+(t.done?'text-decoration:line-through;color:#94a3b8':'')+'">'+escape(t.title)+'</span>' +
+            '</div>' +
             '<div style="margin-top:4px">'+badges+'</div></div>';
         });
         document.getElementById('taskList').innerHTML = html || '无任务';
       });
-    }
-    function startEditTask(idx) {
-      var t = tasksData[idx];
-      if(!t) return;
-      var titleEl = document.getElementById('task-title-'+idx);
-      var inputEl = document.getElementById('task-input-'+idx);
-      var confirmBtn = document.getElementById('task-confirm-'+idx);
-      var cancelBtn = document.getElementById('task-cancel-'+idx);
-      if(inputEl.style.display === 'none') {
-        // 切换到编辑模式
-        titleEl.style.display = 'none';
-        inputEl.style.display = 'block';
-        inputEl.value = t.title;
-        inputEl.focus();
-        confirmBtn.style.display = 'inline-block';
-        cancelBtn.style.display = 'inline-block';
-      } else {
-        saveEditTask(idx);
-      }
-    }
-    function saveEditTask(idx) {
-      var t = tasksData[idx];
-      var inputEl = document.getElementById('task-input-'+idx);
-      var newContent = inputEl.value.trim();
-      if(newContent && newContent !== t.title) {
-        fetch('/api/task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lineIndex:t.lineIndex,newContent:newContent})}).then(function(r){return r.json()}).then(function(d){
-          if(d.success) loadTasks();
-          else alert('失败: '+d.error);
-        });
-      } else {
-        cancelEditTask(idx);
-      }
-    }
-    function cancelEditTask(idx) {
-      var titleEl = document.getElementById('task-title-'+idx);
-      var inputEl = document.getElementById('task-input-'+idx);
-      var confirmBtn = document.getElementById('task-confirm-'+idx);
-      var cancelBtn = document.getElementById('task-cancel-'+idx);
-      titleEl.style.display = '';
-      inputEl.style.display = 'none';
-      confirmBtn.style.display = 'none';
-      cancelBtn.style.display = 'none';
     }
     function toggleTask(idx) {
       var t = tasksData[idx];
@@ -191,12 +146,6 @@
         if(d.success) loadTasks();
         else alert('失败: '+d.error);
       });
-    }
-    function viewTask(idx) {
-      var t = tasksData[idx];
-      if(!t) return;
-      var status = t.done?'已完成':(t.inProgress?'进行中':'待处理');
-      showModal('📋 任务详情','【状态】: '+status+'\n【标题】: '+t.title+'\n【负责人】: '+(t.owner||'未指定')+'\n【优先级】: '+(t.priority||'普通'));
     }
     
     // 讨论
