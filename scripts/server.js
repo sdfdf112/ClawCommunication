@@ -127,6 +127,45 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify({ content }));
     }
 
+    // 更新任务 API (POST /api/task)
+    if (method === 'POST' && url === '/api/task') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const { lineIndex, newStatus, newContent } = JSON.parse(body);
+          const p = path.join(CONFIG.msgDir, '..', 'tasks.md');
+          if (!fs.existsSync(p)) return res.end(JSON.stringify({ success: false, error: 'tasks.md not found' }));
+          
+          const lines = fs.readFileSync(p, 'utf8').split('\n');
+          if (lineIndex < 0 || lineIndex >= lines.length) {
+            return res.end(JSON.stringify({ success: false, error: 'Invalid line index' }));
+          }
+          
+          const line = lines[lineIndex];
+          const match = line.match(/^(- \[)([ x~])(\].*)$/);
+          if (!match) {
+            return res.end(JSON.stringify({ success: false, error: 'Not a task line' }));
+          }
+          
+          if (newStatus) {
+            lines[lineIndex] = line.replace(/^(- \[)([ x~])(\].*)$/, `$1${newStatus}$3`);
+          }
+          if (newContent) {
+            lines[lineIndex] = line.replace(/^(- \[[ x~]\])(.*)$/, `$1 ${newContent}`);
+          }
+          
+          fs.writeFileSync(p, lines.join('\n'));
+          res.writeHead(200, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({ success: true }));
+        } catch (e) {
+          res.writeHead(400, {'Content-Type': 'application/json'});
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      });
+      return;
+    }
+
     // 讨论 API
     if (url === '/api/discussions') {
       const discDir = path.join(CONFIG.msgDir, '..', 'discussions');

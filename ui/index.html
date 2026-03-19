@@ -114,10 +114,11 @@
     function loadTasks() {
       fetch('/api/tasks').then(function(r){return r.json()}).then(function(d){
         var lines = (d.content||'').split('\n');
-        tasksData = lines.filter(function(l){return l.trim().startsWith('- [');}).map(function(l){
-          var m = l.match(/^-\s*\[([ x])\]\s*(.+?)(?:\s*负责人:\s*(\w+))?(?:\s*优先级:\s*(\w+))?$/);
-          return m ? {done:m[1]==='x',title:m[2].trim(),owner:m[3],priority:m[4],raw:l} : null;
-        }).filter(function(x){return x;});
+        tasksData = [];
+        lines.forEach(function(l,i){
+          var m = l.match(/^-\s*\[([ x~])\]\s*(.+?)(?:\s*负责人:\s*(\w+))?(?:\s*优先级:\s*(\w+))?$/);
+          if(m) tasksData.push({done:m[1]==='x',inProgress:m[1]==='~',title:m[2].trim(),owner:m[3],priority:m[4],lineIndex:i,raw:l});
+        });
         
         var html = '';
         tasksData.forEach(function(t,i){
@@ -125,15 +126,43 @@
           if(t.owner) badges += '<span class="badge" style="background:#e0f2fe;color:#0284c7">👤 '+t.owner+'</span> ';
           if(t.priority) badges += '<span class="badge" style="background:#fee2e2;color:#ef4444">🔥 '+t.priority+'</span> ';
           if(t.done) badges += '<span class="badge badge-ok">✓ 已完成</span>';
-          html += '<div class="card" style="cursor:pointer" onclick="viewTask('+i+')">'+(t.done?'✅':'⬜')+' <span '+(t.done?'style="text-decoration:line-through;color:#94a3b8"':'')+'>'+escape(t.title)+'</span><div style="margin-top:4px">'+badges+'</div></div>';
+          else if(t.inProgress) badges += '<span class="badge badge-wait">进行中</span>';
+          var statusIcon = t.done?'✅':(t.inProgress?'⏳':'⬜');
+          html += '<div class="card">' +
+            '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span style="cursor:pointer" onclick="toggleTask('+i+')">'+statusIcon+'</span>' +
+            '<span onclick="viewTask('+i+')" style="cursor:pointer;flex:1;'+(t.done?'text-decoration:line-through;color:#94a3b8':'')+'">'+escape(t.title)+'</span>' +
+            '<button class="btn-blue" style="padding:4px 8px;font-size:0.8rem" onclick="editTask('+i+')">✏️</button></div>' +
+            '<div style="margin-top:4px">'+badges+'</div></div>';
         });
         document.getElementById('taskList').innerHTML = html || '无任务';
       });
     }
+    function toggleTask(idx) {
+      var t = tasksData[idx];
+      if(!t) return;
+      var newStatus = t.done?' ':(t.inProgress?'x':'~');
+      fetch('/api/task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lineIndex:t.lineIndex,newStatus:newStatus})}).then(function(r){return r.json()}).then(function(d){
+        if(d.success) loadTasks();
+        else alert('失败: '+d.error);
+      });
+    }
+    function editTask(idx) {
+      var t = tasksData[idx];
+      if(!t) return;
+      var newContent = prompt('修改任务内容:', t.title);
+      if(newContent && newContent !== t.title) {
+        fetch('/api/task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lineIndex:t.lineIndex,newContent:newContent})}).then(function(r){return r.json()}).then(function(d){
+          if(d.success) loadTasks();
+          else alert('失败: '+d.error);
+        });
+      }
+    }
     function viewTask(idx) {
       var t = tasksData[idx];
       if(!t) return;
-      showModal('📋 任务详情','【状态】: '+(t.done?'已完成':'进行中')+'\n【标题】: '+t.title+'\n【负责人】: '+(t.owner||'未指定')+'\n【优先级】: '+(t.priority||'普通'));
+      var status = t.done?'已完成':(t.inProgress?'进行中':'待处理');
+      showModal('📋 任务详情','【状态】: '+status+'\n【标题】: '+t.title+'\n【负责人】: '+(t.owner||'未指定')+'\n【优先级】: '+(t.priority||'普通'));
     }
     
     // 讨论
