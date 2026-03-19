@@ -137,12 +137,24 @@ const server = http.createServer(async (req, res) => {
           const p = path.join(CONFIG.msgDir, '..', 'tasks.md');
           if (!fs.existsSync(p)) return res.end(JSON.stringify({ success: false, error: 'tasks.md not found' }));
           
-          const lines = fs.readFileSync(p, 'utf8').split('\n');
-          if (lineIndex < 0 || lineIndex >= lines.length) {
-            return res.end(JSON.stringify({ success: false, error: 'Invalid line index' }));
+          // 读取所有行
+          const allLines = fs.readFileSync(p, 'utf8').split('\n');
+          
+          // 找出所有任务行的真实行号
+          const taskLineIndexes = [];
+          allLines.forEach((line, idx) => {
+            if (line.match(/^-\s*\[[ x~]\]/)) {
+              taskLineIndexes.push(idx);
+            }
+          });
+          
+          // 用前端传来的 taskIndex（任务在列表中的位置）找到真实行号
+          const realLineIndex = taskLineIndexes[lineIndex];
+          if (realLineIndex === undefined) {
+            return res.end(JSON.stringify({ success: false, error: 'Invalid task index' }));
           }
           
-          const line = lines[lineIndex];
+          const line = allLines[realLineIndex];
           // 匹配任务行：- [状态] 内容
           const match = line.match(/^(- \[[ x~]\])(.+)$/);
           if (!match) {
@@ -152,20 +164,20 @@ const server = http.createServer(async (req, res) => {
           if (newStatus) {
             // 提取当前状态字符并替换
             const statusChar = line.match(/^(- \[)([ x~])(\])/)[2];
-            lines[lineIndex] = `- [${newStatus}]` + line.slice(line.indexOf(']') + 1);
+            allLines[realLineIndex] = `- [${newStatus}]` + line.slice(line.indexOf(']') + 1);
           }
           if (newContent !== undefined) {
             if (newContent === '') {
               // 删除任务（清空行）
-              lines[lineIndex] = '';
+              allLines[realLineIndex] = '';
             } else {
               // 提取当前状态字符
               const statusChar = line.match(/^(- \[)([ x~])(\])/)[2];
-              lines[lineIndex] = `- [${statusChar}] ${newContent}`;
+              allLines[realLineIndex] = `- [${statusChar}] ${newContent}`;
             }
           }
           
-          fs.writeFileSync(p, lines.filter(l => l !== '').join('\n'));
+          fs.writeFileSync(p, allLines.filter(l => l !== '').join('\n'));
           res.writeHead(200, {'Content-Type': 'application/json'});
           res.end(JSON.stringify({ success: true }));
         } catch (e) {
