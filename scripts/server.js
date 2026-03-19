@@ -150,14 +150,6 @@ const server = http.createServer(async (req, res) => {
       return res.end(text);
     }
 
-    // 通知 API
-    if (url === '/api/notifications') {
-      const p = path.join(CONFIG.msgDir, '..', 'notifications.json');
-      const data = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '{"notifications":[]}';
-      res.writeHead(200, {'Content-Type': 'application/json'});
-      return res.end(data);
-    }
-
     // 死信队列 API
     if (url === '/api/dead-letters') {
       try {

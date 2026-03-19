@@ -33,7 +33,6 @@
     <button class="tab" onclick="switchTab('messages')">消息流</button>
     <button class="tab" onclick="switchTab('tasks')">任务板</button>
     <button class="tab" onclick="switchTab('discussions')">讨论存档</button>
-    <button class="tab" onclick="switchTab('notifications')">系统通知</button>
     <button class="tab" onclick="switchTab('deadletters')">失败消息</button>
   </nav>
   <main>
@@ -41,7 +40,6 @@
     <div id="messages" class="panel"><h2>消息流</h2><div id="messageList"></div></div>
     <div id="tasks" class="panel"><h2>任务看板</h2><div id="taskList"></div></div>
     <div id="discussions" class="panel"><h2>讨论</h2><div id="discussionList"></div></div>
-    <div id="notifications" class="panel"><h2>通知</h2><div id="notificationList"></div></div>
     <div id="deadletters" class="panel"><h2>失败消息</h2><div id="deadLetterList"></div></div>
   </main>
   <div id="modal" class="modal" onclick="this.classList.remove('active')">
@@ -156,16 +154,6 @@
       });
     }
     
-    // 通知
-    function loadNotifications() {
-      fetch('/api/notifications').then(function(r){return r.json()}).then(function(d){
-        var list = d.notifications||[];
-        var html = '';
-        list.forEach(function(n){html += '<div class="card">'+escape(n.content||n.message)+'</div>';});
-        document.getElementById('notificationList').innerHTML = html || '无通知';
-      });
-    }
-    
     // 失败消息
     function loadDeadLetters() {
       fetch('/api/dead-letters').then(function(r){return r.json()}).then(function(data){
@@ -204,7 +192,7 @@
     refreshStatus();
     setInterval(refreshStatus, 5000);
     loadMessages(); setInterval(loadMessages, 5000);
-    loadTasks(); loadDiscussions(); loadNotifications(); loadDeadLetters();
+    loadTasks(); loadDiscussions(); loadDeadLetters();
   </script>
 </body>
 </html>
