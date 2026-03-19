@@ -90,29 +90,18 @@ const server = http.createServer(async (req, res) => {
     return res.end(HTML);
   }
 
-  // 调试 API
-  if (url === '/api/debug') {
-    res.writeHead(200, {'Content-Type': 'application/json'});
-    return res.end(JSON.stringify({
-      msgDir: CONFIG.msgDir,
-      msgDirExists: fs.existsSync(CONFIG.msgDir),
-      msgFiles: fs.existsSync(CONFIG.msgDir) ? fs.readdirSync(CONFIG.msgDir).filter(f => f.endsWith('.json')).length : 0
-    }));
-  }
-
   try {
     // 消息列表 API
     if (url === '/api/messages') {
-      console.log('[DEBUG] /api/messages called');
-      console.log('[DEBUG] msgDir:', CONFIG.msgDir);
       const files = fs.readdirSync(CONFIG.msgDir).filter(f => f.endsWith('.json') && f !== 'counter.json').sort().slice(-20).reverse();
-      console.log('[DEBUG] files count:', files.length);
       let data;
       try {
-        data = files.map(f => JSON.parse(fs.readFileSync(path.join(CONFIG.msgDir, f), 'utf8')));
-        console.log('[DEBUG] data parsed count:', data.length);
+        data = files.map(f => {
+          const raw = fs.readFileSync(path.join(CONFIG.msgDir, f), 'utf8');
+          const clean = raw.replace(/^\uFEFF/, '').trim();
+          return JSON.parse(clean);
+        });
       } catch(e) {
-        console.log('[DEBUG] parse error:', e.message);
         data = [];
       }
       
@@ -145,67 +134,6 @@ const server = http.createServer(async (req, res) => {
       const content = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
       res.writeHead(200, {'Content-Type': 'application/json'});
       return res.end(JSON.stringify({ content }));
-    }
-
-    // 更新任务 API (POST /api/task)
-    if (method === 'POST' && url === '/api/task') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', () => {
-        try {
-          const { lineIndex, newStatus, newContent } = JSON.parse(body);
-          const p = path.join(CONFIG.msgDir, '..', 'tasks.md');
-          if (!fs.existsSync(p)) return res.end(JSON.stringify({ success: false, error: 'tasks.md not found' }));
-          
-          // 读取所有行
-          const allLines = fs.readFileSync(p, 'utf8').split('\n');
-          
-          // 找出所有任务行的真实行号
-          const taskLineIndexes = [];
-          allLines.forEach((line, idx) => {
-            if (line.match(/^-\s*\[[ x~]\]/)) {
-              taskLineIndexes.push(idx);
-            }
-          });
-          
-          // 用前端传来的 taskIndex（任务在列表中的位置）找到真实行号
-          const realLineIndex = taskLineIndexes[lineIndex];
-          if (realLineIndex === undefined) {
-            return res.end(JSON.stringify({ success: false, error: 'Invalid task index' }));
-          }
-          
-          const line = allLines[realLineIndex];
-          // 匹配任务行：- [状态] 内容
-          const match = line.match(/^(- \[[ x~]\])(.+)$/);
-          if (!match) {
-            return res.end(JSON.stringify({ success: false, error: '非任务行: ' + line.slice(0, 30) }));
-          }
-          
-          if (newStatus) {
-            // 提取当前状态字符并替换
-            const statusChar = line.match(/^(- \[)([ x~])(\])/)[2];
-            allLines[realLineIndex] = `- [${newStatus}]` + line.slice(line.indexOf(']') + 1);
-          }
-          if (newContent !== undefined) {
-            if (newContent === '') {
-              // 删除任务（清空行）
-              allLines[realLineIndex] = '';
-            } else {
-              // 提取当前状态字符
-              const statusChar = line.match(/^(- \[)([ x~])(\])/)[2];
-              allLines[realLineIndex] = `- [${statusChar}] ${newContent}`;
-            }
-          }
-          
-          fs.writeFileSync(p, allLines.filter(l => l !== '').join('\n'));
-          res.writeHead(200, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({ success: true }));
-        } catch (e) {
-          res.writeHead(400, {'Content-Type': 'application/json'});
-          res.end(JSON.stringify({ success: false, error: e.message }));
-        }
-      });
-      return;
     }
 
     // 讨论 API
