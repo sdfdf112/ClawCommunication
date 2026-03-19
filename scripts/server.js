@@ -93,7 +93,7 @@ const server = http.createServer(async (req, res) => {
   try {
     // 消息列表 API
     if (url === '/api/messages') {
-      const files = fs.readdirSync(CONFIG.msgDir).filter(f => f.endsWith('.json') && f !== 'counter.json').sort().slice(-20);
+      const files = fs.readdirSync(CONFIG.msgDir).filter(f => f.endsWith('.json') && f !== 'counter.json').sort().slice(-20).reverse();
       const data = files.map(f => JSON.parse(fs.readFileSync(path.join(CONFIG.msgDir, f), 'utf8')));
       
       // 获取已处理消息状态

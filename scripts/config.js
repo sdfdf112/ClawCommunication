@@ -5,7 +5,8 @@
  */
 
 // 加载环境变量
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 module.exports = {
   // 服务端口
