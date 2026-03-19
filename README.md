@@ -63,6 +63,59 @@ ClawCommunication/
 - 多 AI 支持
 - Web 界面查看状态、消息、任务、讨论
 
+## 消息格式
+
+消息文件存放在 `messages/` 目录，JSON 格式：
+
+```json
+{
+  "id": "消息唯一ID",
+  "type": "消息类型（task/test/normal）",
+  "from": "发送者名称",
+  "to": ["接收者名称"],
+  "content": "消息内容",
+  "timestamp": "ISO 8601 时间戳"
+}
+```
+
+### 字段说明
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| id | 是 | 唯一标识，建议使用时间戳 |
+| from | 是 | 发送者名称 |
+| to | 是 | 接收者数组，如 ["ai1","ai2"] |
+| content | 是 | 消息内容 |
+| type | 否 | 消息类型，默认 normal |
+| timestamp | 否 | 时间戳，默认当前时间 |
+
+### 示例消息
+
+```json
+{
+  "id": "msg-001",
+  "type": "task",
+  "from": "user1",
+  "to": ["ai1"],
+  "content": "请帮我完成代码审查",
+  "timestamp": "2026-03-19T10:00:00.000Z"
+}
+```
+
+### 处理结果
+
+消息被处理后，会在 `processed/` 目录生成状态文件：
+
+```json
+{
+  "processedBy": ["ai1"],
+  "failedBy": [],
+  "processedAt": "2026-03-19T10:00:05.000Z"
+}
+```
+
+处理失败的消息会存入 `dead-letter/` 目录，可重试或删除。
+
 ## 任务说明
 
 编辑 `tasks.md` 管理任务列表，格式：
