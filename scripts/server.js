@@ -156,7 +156,10 @@ const server = http.createServer(async (req, res) => {
               // 删除任务（清空行）
               lines[lineIndex] = '';
             } else {
-              lines[lineIndex] = line.replace(/^(- \[[ x~]\]).*$/, `$1 ${newContent}`);
+              // 提取当前状态字符
+              const statusMatch = line.match(/^(- \[)([ x~])(\].*)$/);
+              const status = statusMatch ? statusMatch[2] : ' ';
+              lines[lineIndex] = `- [${status}] ${newContent}`;
             }
           }
           

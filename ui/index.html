@@ -129,12 +129,14 @@
           else if(t.inProgress) badges += '<span class="badge badge-wait">进行中</span>';
           var statusIcon = t.done?'✅':(t.inProgress?'⏳':'⬜');
           html += '<div class="card" id="task-'+i+'">' +
-            '<div style="display:flex;align-items:center;gap:8px">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
             '<span style="cursor:pointer;font-size:1.2rem" onclick="toggleTask('+i+')">'+statusIcon+'</span>' +
-            '<span class="task-title" id="task-title-'+i+'" onclick="startEditTask('+i+')" style="cursor:text;flex:1;'+(t.done?'text-decoration:line-through;color:#94a3b8':'')+'">'+escape(t.title)+'</span>' +
-            '<input type="text" id="task-input-'+i+'" class="task-input" style="display:none;flex:1;padding:4px;border:1px solid #3b82f6;border-radius:4px" />' +
-            '<button class="btn-blue" style="padding:4px 8px;font-size:0.8rem" onclick="startEditTask('+i+')">修改</button>' +
-            '<button class="btn-red" style="padding:4px 8px;font-size:0.8rem" onclick="removeTask('+i+')">移除</button></div>' +
+            '<span class="task-title" id="task-title-'+i+'" style="flex:1;min-width:150px;'+(t.done?'text-decoration:line-through;color:#94a3b8':'')+'">'+escape(t.title)+'</span>' +
+            '<input type="text" id="task-input-'+i+'" class="task-input" style="display:none;flex:1;min-width:200px;padding:6px;border:1px solid #3b82f6;border-radius:4px;font-size:1rem" />' +
+            '<button class="btn-blue" style="padding:4px 12px;font-size:0.85rem" onclick="startEditTask('+i+')">修改</button>' +
+            '<button class="btn-red" style="padding:4px 12px;font-size:0.85rem" onclick="removeTask('+i+')">移除</button>' +
+            '<button id="task-confirm-'+i+'" class="btn-blue" style="display:none;padding:4px 12px;font-size:0.85rem;background:#16a34a" onclick="saveEditTask('+i+')">确认</button>' +
+            '<button id="task-cancel-'+i+'" class="btn-red" style="display:none;padding:4px 12px;font-size:0.85rem" onclick="cancelEditTask('+i+')">取消</button></div>' +
             '<div style="margin-top:4px">'+badges+'</div></div>';
         });
         document.getElementById('taskList').innerHTML = html || '无任务';
@@ -145,17 +147,16 @@
       if(!t) return;
       var titleEl = document.getElementById('task-title-'+idx);
       var inputEl = document.getElementById('task-input-'+idx);
+      var confirmBtn = document.getElementById('task-confirm-'+idx);
+      var cancelBtn = document.getElementById('task-cancel-'+idx);
       if(inputEl.style.display === 'none') {
         // 切换到编辑模式
         titleEl.style.display = 'none';
         inputEl.style.display = 'block';
         inputEl.value = t.title;
         inputEl.focus();
-        inputEl.onkeydown = function(e) {
-          if(e.key === 'Enter') saveEditTask(idx);
-          if(e.key === 'Escape') cancelEditTask(idx);
-        };
-        inputEl.onblur = function() { saveEditTask(idx); };
+        confirmBtn.style.display = 'inline-block';
+        cancelBtn.style.display = 'inline-block';
       } else {
         saveEditTask(idx);
       }
@@ -176,8 +177,12 @@
     function cancelEditTask(idx) {
       var titleEl = document.getElementById('task-title-'+idx);
       var inputEl = document.getElementById('task-input-'+idx);
+      var confirmBtn = document.getElementById('task-confirm-'+idx);
+      var cancelBtn = document.getElementById('task-cancel-'+idx);
       titleEl.style.display = '';
       inputEl.style.display = 'none';
+      confirmBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
     }
     function toggleTask(idx) {
       var t = tasksData[idx];
