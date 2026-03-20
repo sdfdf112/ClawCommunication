@@ -17,6 +17,40 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const CONFIG = require('./config');
 const PORT = CONFIG.port || 3000;
 
+// ==================== 1.5 头像路径映射 ====================
+// 扫描 ClawGroups 下的 AI workspace，动态构建头像路径
+function buildAvatarMap() {
+  const avatarMap = {};
+  const clawGroupsDir = 'E:\\ClawGroups';
+  try {
+    const dirs = fs.readdirSync(clawGroupsDir);
+    dirs.forEach(dir => {
+      const fullPath = path.join(clawGroupsDir, dir);
+      if (!fs.statSync(fullPath).isDirectory()) return;
+      const identityPath = path.join(fullPath, '.openclaw', 'workspace', 'IDENTITY.md');
+      const avatarsPath = path.join(fullPath, '.openclaw', 'workspace', 'avatars');
+      if (!fs.existsSync(identityPath)) return;
+      try {
+        const content = fs.readFileSync(identityPath, 'utf8');
+        const nameMatch = content.match(/\*\*Name:\*\*\s*(\S+)/);
+        if (!nameMatch) return;
+        const aiName = nameMatch[1].toLowerCase();
+        if (!fs.existsSync(avatarsPath)) return;
+        const files = fs.readdirSync(avatarsPath).filter(f => /\.jpg$/i.test(f));
+        if (files.length > 0) {
+          avatarMap[aiName] = path.join(avatarsPath, files[0]);
+        }
+      } catch(e) {}
+    });
+  } catch(e) {}
+  // 手动补充 Wisp（位于 openclaw-memory）
+  const wispAvatar = 'E:\\openclaw-memory\\assets\\avatars\\Wisp.jpg';
+  if (fs.existsSync(wispAvatar)) avatarMap['wisp'] = wispAvatar;
+  return avatarMap;
+}
+const AVATAR_MAP = buildAvatarMap();
+console.log('[INFO] 头像映射:', JSON.stringify(AVATAR_MAP));
+
 // ==================== 2. 死信队列目录 ====================
 const processedDir = path.join(CONFIG.msgDir, '..', 'processed');
 const deadLetterDir = path.join(CONFIG.msgDir, '..', 'dead-letter');
@@ -126,6 +160,18 @@ const server = http.createServer(async (req, res) => {
       
       res.writeHead(200, {'Content-Type': 'application/json'});
       return res.end(JSON.stringify(data));
+    }
+
+    // 头像代理 API
+    if (url.startsWith('/api/avatar/')) {
+      const name = url.replace('/api/avatar/', '').toLowerCase();
+      const avatarPath = AVATAR_MAP[name];
+      if (avatarPath && fs.existsSync(avatarPath)) {
+        res.writeHead(200, {'Content-Type': 'image/jpeg'});
+        return res.end(fs.readFileSync(avatarPath));
+      }
+      res.writeHead(404);
+      return res.end('Avatar not found');
     }
 
     // 任务 API（读取）

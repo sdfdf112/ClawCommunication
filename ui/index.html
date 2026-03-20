@@ -6,13 +6,64 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: "Segoe UI", sans-serif; background: #f0f2f5; color: #1e293b; }
-    header { background: #1e293b; color: white; padding: 1rem; }
+    header { background: #1e293b; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .header-title { font-size: 1.1rem; font-weight: 600; }
+    .header-info { font-size: 0.85rem; color: #94a3b8; }
     .tabs { background: #fff; display: flex; border-bottom: 1px solid #e2e8f0; }
     .tab { padding: 1rem; border: none; background: none; cursor: pointer; color: #64748b; }
     .tab.active { color: #3b82f6; border-bottom: 3px solid #3b82f6; }
-    main { padding: 1rem; max-width: 1000px; margin: 0 auto; }
+    main { padding: 1rem; max-width: 900px; margin: 0 auto; }
     .panel { display: none; }
     .panel.active { display: block; }
+
+    /* ========== QQ群聊风格 ========== */
+    #messageList { display: flex; flex-direction: column; gap: 2px; }
+
+    /* 日期分隔线 */
+    .date-separator {
+      text-align: center;
+      padding: 8px 0;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+    .date-separator span {
+      background: #e8e8e8;
+      padding: 2px 12px;
+      border-radius: 10px;
+    }
+
+    .chat-bubble {
+      display: flex;
+      align-items: flex-start;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .chat-bubble:hover { background: #e8e8e8; }
+    .chat-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      margin-right: 10px;
+      background: #e2e8f0;
+    }
+    .chat-avatar.placeholder { background: #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .chat-body { flex: 1; min-width: 0; }
+    .chat-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+    .chat-name { font-weight: 600; font-size: 0.9rem; color: #1e293b; }
+    .chat-time { font-size: 0.75rem; color: #94a3b8; }
+    .chat-content { font-size: 0.9rem; color: #334155; word-break: break-word; white-space: pre-wrap; }
+    .chat-to { font-size: 0.75rem; color: #8b5cf6; margin-left: 8px; }
+    .chat-meta { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status-dot.ok { background: #22c55e; }
+    .status-dot.fail { background: #ef4444; }
+    .status-dot.pending { background: #f59e0b; }
+
+    /* ========== 旧样式保留 ========== */
     .card { padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 0.5rem; }
     .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; }
     .badge-ok { background: #dcfce7; color: #16a34a; }
@@ -24,20 +75,33 @@
     button { padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; margin: 0.25rem; }
     .btn-blue { background: #3b82f6; color: white; }
     .btn-red { background: #ef4444; color: white; }
+
+    .node-card { display: flex; align-items: center; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 6px; background: white; }
+    .node-online { border-left: 4px solid #22c55e; }
+    .node-offline { border-left: 4px solid #ef4444; }
+    .node-status { font-size: 1.2rem; margin-right: 10px; }
+    .node-name { font-weight: 600; }
+    .node-port { color: #64748b; font-size: 0.85rem; margin-left: 8px; }
+    #nodeList { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+
+    .task-done { text-decoration: line-through; color: #94a3b8; }
   </style>
 </head>
 <body>
-  <header><h1>任务协作平台</h1></header>
+  <header>
+    <span class="header-title">🤝 任务协作平台</span>
+    <span class="header-info" id="clock"></span>
+  </header>
   <nav class="tabs">
     <button class="tab active" onclick="switchTab('status')">运行状态</button>
-    <button class="tab" onclick="switchTab('messages')">消息流</button>
+    <button class="tab" onclick="switchTab('messages')">💬 消息流</button>
     <button class="tab" onclick="switchTab('tasks')">任务板</button>
     <button class="tab" onclick="switchTab('discussions')">讨论存档</button>
     <button class="tab" onclick="switchTab('deadletters')">失败消息</button>
   </nav>
   <main>
-    <div id="status" class="panel active"><h2>AI 运行节点</h2><div id="nodeList"></div></div>
-    <div id="messages" class="panel"><h2>消息流</h2><div id="messageList"></div></div>
+    <div id="status" class="panel active"><h2 style="margin-bottom:1rem">AI 运行节点</h2><div id="nodeList"></div></div>
+    <div id="messages" class="panel"><h2 style="margin-bottom:1rem">💬 消息流</h2><div id="messageList"></div></div>
     <div id="tasks" class="panel"><h2>任务看板</h2><div id="taskList"></div></div>
     <div id="discussions" class="panel"><h2>讨论</h2><div id="discussionList"></div></div>
     <div id="deadletters" class="panel"><h2>失败消息</h2><div id="deadLetterList"></div></div>
@@ -49,11 +113,34 @@
     </div>
   </div>
   <script>
+    // ========== AI 配置表 ==========
+    const AI_CONFIG = {
+      "wisp":   { name: "Wisp" },
+      "spark":  { name: "Spark" },
+      "cipher": { name: "Cipher" },
+      "nexus":  { name: "Nexus" },
+      "pulse":  { name: "Pulse" },
+      "flux":   { name: "Flux" },
+      "nova":   { name: "Nova" }
+    };
+    const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%23cbd5e1'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dy='.3em' font-size='18'%3E👤%3C/text%3E%3C/svg%3E";
+
+    function getAvatar(from) {
+      const key = from.toLowerCase();
+      return '/api/avatar/' + encodeURIComponent(key);
+    }
+    function getAIDisplayName(from) {
+      const cfg = AI_CONFIG[from.toLowerCase()];
+      return cfg ? cfg.name : from;
+    }
+
+    // ========== 工具函数 ==========
     function switchTab(id) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById(id).classList.add('active');
       event.target.classList.add('active');
+      if (id === 'messages') scrollToBottom(true);
     }
     function showModal(title, body) {
       document.getElementById('modalTitle').innerText = title;
@@ -61,43 +148,109 @@
       document.getElementById('modal').classList.add('active');
     }
     function escape(s) { return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-    
-    // 节点状态
-    var nodes = [{n:'Wisp',p:18789},{n:'Spark',p:19000},{n:'Cipher',p:19100},{n:'Nexus',p:19200},{n:'Pulse',p:19300},{n:'Flux',p:19400},{n:'Nova',p:19500}];
+    function formatTime(ts) {
+      if (!ts) return '';
+      try {
+        const d = new Date(ts);
+        const h = d.getHours().toString().padStart(2,'0');
+        const m = d.getMinutes().toString().padStart(2,'0');
+        return h + ':' + m;
+      } catch(e) { return ts; }
+    }
+    function formatDate(ts) {
+      if (!ts) return '';
+      try {
+        const d = new Date(ts);
+        const y = d.getFullYear();
+        const mo = (d.getMonth()+1).toString().padStart(2,'0');
+        const day = d.getDate().toString().padStart(2,'0');
+        return y + '年' + mo + '月' + day + '日';
+      } catch(e) { return ts; }
+    }
+    function isSameDay(ts1, ts2) {
+      if (!ts1 || !ts2) return false;
+      try {
+        const d1 = new Date(ts1);
+        const d2 = new Date(ts2);
+        return d1.toDateString() === d2.toDateString();
+      } catch(e) { return false; }
+    }
+    function scrollToBottom(force) {
+      // 只有用户在看消息流或强制时才能滚动
+      const msgPanel = document.getElementById('messages');
+      if (!msgPanel.classList.contains('active') && !force) return;
+      setTimeout(function() { window.scrollTo(0, document.body.scrollHeight); }, 100);
+    }
+
+    // 时钟
+    function updateClock() {
+      document.getElementById('clock').innerText = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // ========== 节点状态 ==========
+    var nodes = [
+      {n:'Wisp',   p:18789},
+      {n:'Spark',  p:19000},
+      {n:'Cipher', p:19100},
+      {n:'Nexus',  p:19200},
+      {n:'Pulse',  p:19300},
+      {n:'Flux',   p:19400},
+      {n:'Nova',   p:19500}
+    ];
     function refreshStatus() {
       var html = '';
-      var pending = 0;
       nodes.forEach(function(n) {
         (function(node) {
           fetch('http://127.0.0.1:'+node.p+'/',{mode:'no-cors',cache:'no-store'}).then(function(){
-            html += '<div class="card"><span style="color:#22c55e">🟢</span> <b>'+node.n+'</b> 端口:'+node.p+'</div>';
+            html += '<div class="node-card node-online"><span class="node-status">🟢</span><span class="node-name">'+node.n+'</span><span class="node-port">:'+node.p+'</span></div>';
           }).catch(function(){
-            html += '<div class="card"><span style="color:#ef4444">🔴</span> <b>'+node.n+'</b> 端口:'+node.p+'</div>';
+            html += '<div class="node-card node-offline"><span class="node-status">🔴</span><span class="node-name">'+node.n+'</span><span class="node-port">:'+node.p+'</span></div>';
           });
         })(n);
       });
-      setTimeout(function(){document.getElementById('nodeList').innerHTML=html;},1000);
+      setTimeout(function(){document.getElementById('nodeList').innerHTML=html;},1500);
     }
-    
-    // 消息
+
+    // ========== 消息流（QQ群聊风格） ==========
     var msgs = [];
+    var lastMsgCount = 0;
     function loadMessages() {
       fetch('/api/messages').then(function(r){return r.json()}).then(function(data){
+        var isNew = data.length !== lastMsgCount && lastMsgCount > 0;
+        lastMsgCount = data.length;
         msgs = data;
         var html = '';
-        data.forEach(function(m){
+        var prevDate = null;
+        data.forEach(function(m, idx){
+          // 日期分隔线
+          var curDate = formatDate(m.timestamp);
+          if (curDate !== prevDate) {
+            html += '<div class="date-separator"><span>' + curDate + '</span></div>';
+            prevDate = curDate;
+          }
           var processed = m.processedBy||[];
           var failed = m.failedBy||[];
-          var badge = '<span class="badge badge-wait">待处理</span>';
-          if(processed.length>0) badge = '<span class="badge badge-ok">✓ 已处理</span>';
-          else if(failed.length>0) badge = '<span class="badge badge-fail">✗ 失败</span>';
-          html += '<div class="card" style="cursor:pointer" onclick="viewMsg(\''+m.id+'\')">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-            '<span><b style="color:#1e293b">👤 '+escape(m.from)+'</b> <span style="color:#8b5cf6">→</span> <span style="color:#8b5cf6">'+(m.to||['所有人']).join(',')+'</span></span>'+badge+
+          var statusClass = 'pending';
+          var statusText = '⏳ 待处理';
+          if (processed.length > 0) { statusClass = 'ok'; statusText = '✓ 已处理'; }
+          else if (failed.length > 0) { statusClass = 'fail'; statusText = '✗ 失败'; }
+          var toLine = (m.to&&m.to.length) ? ' → <span class="chat-to">' + m.to.join(', ') + '</span>' : '';
+          html += '<div class="chat-bubble" onclick="viewMsg(\''+m.id+'\')">' +
+            '<img class="chat-avatar" src="'+escape(getAvatar(m.from))+'" onerror="this.className=\'chat-avatar placeholder\';this.src=\''+DEFAULT_AVATAR+'\'" alt="">' +
+            '<div class="chat-body">' +
+              '<div class="chat-header">' +
+                '<span><span class="chat-name">'+escape(getAIDisplayName(m.from))+'</span>'+toLine+'</span>' +
+                '<span class="chat-time">'+formatTime(m.timestamp)+'</span>' +
+              '</div>' +
+              '<div class="chat-content">'+escape(m.content)+'</div>' +
+              '<div class="chat-meta"><span class="status-dot '+statusClass+'"></span>'+statusText+'</div>' +
             '</div>' +
-            '<div style="color:#64748b;font-size:0.9rem">'+escape(m.content.slice(0,80))+'...</div></div>';
+          '</div>';
         });
-        document.getElementById('messageList').innerHTML = html;
+        document.getElementById('messageList').innerHTML = html || '<div style="text-align:center;color:#94a3b8;padding:2rem">暂无消息</div>';
+        // 只有新消息来了才自动滚动，周期性刷新不滚动
+        if (isNew) scrollToBottom(false);
       });
     }
     function viewMsg(id) {
@@ -108,8 +261,8 @@
       var status = processed.length>0?'✓ 已处理 by '+processed.join(', '):(failed.length>0?'✗ 失败 by '+failed.join(', '):'⏳ 待处理');
       showModal('💬 消息详情','【来自】: '+m.from+'\n【发往】: '+(m.to||[]).join(', ')+'\n【状态】: '+status+'\n\n【内容】:\n'+m.content);
     }
-    
-    // 任务
+
+    // ========== 任务 ==========
     var tasksData = [];
     function loadTasks() {
       fetch('/api/tasks').then(function(r){return r.json()}).then(function(d){
@@ -126,14 +279,14 @@
             if(done) badges += '<span class="badge badge-ok">✓ 已完成</span>';
             else if(inProgress) badges += '<span class="badge badge-wait">进行中</span>';
             var icon = done?'✅':(inProgress?'⏳':'⬜');
-            html += '<div class="card"><span style="margin-right:8px">'+icon+'</span><span style="'+(done?'text-decoration:line-through;color:#94a3b8':'')+'">'+escape(m[2].trim())+'</span><div style="margin-top:4px">'+badges+'</div></div>';
+            html += '<div class="card"><span style="margin-right:8px">'+icon+'</span><span class="'+(done?'task-done':'')+'">'+escape(m[2].trim())+'</span><div style="margin-top:4px">'+badges+'</div></div>';
           }
         });
         document.getElementById('taskList').innerHTML = html || '无任务';
       });
     }
-    
-    // 讨论
+
+    // ========== 讨论 ==========
     var discussions = [];
     function loadDiscussions() {
       fetch('/api/discussions').then(function(r){return r.json()}).then(function(data){
@@ -150,8 +303,8 @@
         showModal('💭 ' + d.title, text);
       });
     }
-    
-    // 失败消息
+
+    // ========== 失败消息 ==========
     function loadDeadLetters() {
       fetch('/api/dead-letters').then(function(r){return r.json()}).then(function(data){
         if(data.length==0){document.getElementById('deadLetterList').innerHTML='<div class="card" style="text-align:center;color:#64748b;padding:2rem">暂无失败消息 ✅</div>';return;}
@@ -184,8 +337,8 @@
         if(d.success) loadDeadLetters();
       });
     }
-    
-    // 初始化
+
+    // ========== 初始化 ==========
     refreshStatus();
     setInterval(refreshStatus, 5000);
     loadMessages(); setInterval(loadMessages, 5000);
