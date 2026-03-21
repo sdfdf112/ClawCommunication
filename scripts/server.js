@@ -253,6 +253,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 // ==================== 6. 消息监听 ====================
+const processingFiles = new Set();
+
 async function wakeAgent(name, config, msg, msgId) {
   const task = '【新任务】来自 ' + msg.from + ': ' + msg.content;
   const processedBy = msg.processedBy || [];
@@ -283,15 +285,28 @@ const watcher = chokidar.watch(CONFIG.msgDir + '/*.json', {
 });
 watcher.on('add', async (p) => {
   const fileName = path.basename(p);
-  const raw = fs.readFileSync(p, 'utf8');
-  const msg = JSON.parse(raw.replace(/^\uFEFF/, ''));
-  const msgId = String(msg.id || fileName);
+  
+  // 防重：正在处理中的文件直接跳过
+  if (processingFiles.has(fileName)) return;
+  processingFiles.add(fileName);
   
   try {
+    const raw = fs.readFileSync(p, 'utf8');
+    const msg = JSON.parse(raw.replace(/^\uFEFF/, ''));
+    const msgId = String(msg.id || fileName);
+    
     if (msg.type === 'system') return;
-    const targets = (msg.to && msg.to.length) ? msg.to.filter(t => CONFIG.agents[t.toLowerCase()]) : Object.keys(CONFIG.agents);
-    targets.forEach(t => wakeAgent(t.toLowerCase(), CONFIG.agents[t.toLowerCase()], msg, msgId));
-  } catch(e) {}
+    
+    const targets = (msg.to && msg.to.length) 
+      ? msg.to.filter(t => CONFIG.agents[t.toLowerCase()]) 
+      : Object.keys(CONFIG.agents);
+    
+    await Promise.all(targets.map(t => wakeAgent(t.toLowerCase(), CONFIG.agents[t.toLowerCase()], msg, msgId)));
+  } catch(e) {
+    log('ERROR', '处理消息文件 ' + fileName + ' 失败: ' + e.message);
+  } finally {
+    processingFiles.delete(fileName);
+  }
 });
 
 // ==================== 7. 启动 ====================
