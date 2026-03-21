@@ -12,8 +12,8 @@ module.exports = {
   // 服务端口
   port: 3000,
 
-  // 消息目录
-  msgDir: 'E:\\ClawCommunication\\messages',
+  // 消息目录（相对于项目根目录）
+  msgDir: path.join(__dirname, '..', 'messages'),
 
   // AI 配置 - 各自端口的 Gateway
   agents: {
@@ -37,7 +37,7 @@ module.exports = {
   timeout: 120000,   // AI 唤醒超时 120秒
   maxRetries: 3,     // 最大重试次数
 
-  // 日志配置
-  logDir: 'E:\\ClawCommunication\\logs',
+  // 日志配置（相对于项目根目录）
+  logDir: path.join(__dirname, '..', 'logs'),
   logFile: 'platform.log'
 };

@@ -256,7 +256,12 @@ const server = http.createServer(async (req, res) => {
 const processingFiles = new Set();
 
 async function wakeAgent(name, config, msg, msgId) {
-  const task = '【新任务】来自 ' + msg.from + ': ' + msg.content;
+  // 保留换行，但把换行转为行号格式发给 AI，确保多行内容可读
+  const contentLines = msg.content.split('\n');
+  const formattedContent = contentLines.length > 1
+    ? contentLines.map((l, i) => `${i + 1}. ${l}`).join('\n')
+    : msg.content;
+  const task = '【新任务】来自 ' + msg.from + ':\n' + formattedContent;
   const processedBy = msg.processedBy || [];
   if (processedBy.includes(name)) return;
   

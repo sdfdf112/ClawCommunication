@@ -338,6 +338,18 @@
       });
     }
 
+    // ========== 轮询防抖（窗口切回时避免多个 setInterval 同时触发） ==========
+    var refocusTimer = null;
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) return;
+      // 防抖：窗口重新可见时，延迟 1 秒再刷新，避免页面激活瞬间大量请求
+      if (refocusTimer) clearTimeout(refocusTimer);
+      refocusTimer = setTimeout(function() {
+        refreshStatus();
+        loadMessages();
+      }, 1000);
+    });
+
     // ========== 初始化 ==========
     refreshStatus();
     setInterval(refreshStatus, 5000);
