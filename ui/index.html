@@ -223,10 +223,12 @@
         var html = '';
         var prevDate = null;
         data.forEach(function(m, idx){
-          // 日期分隔线
+          // 日期分隔线（倒序时：先遇到新日期，直接加在前面；等下一组日期出现时再加分隔线）
           var curDate = formatDate(m.timestamp);
           if (curDate !== prevDate) {
-            html += '<div class="date-separator"><span>' + curDate + '</span></div>';
+            if (prevDate !== null) {
+              html += '<div class="date-separator"><span>' + prevDate + '</span></div>';
+            }
             prevDate = curDate;
           }
           var processed = m.processedBy||[];
@@ -249,6 +251,10 @@
           '</div>';
         });
         document.getElementById('messageList').innerHTML = html || '<div style="text-align:center;color:#94a3b8;padding:2rem">暂无消息</div>';
+        // 循环结束后补上最后一天的日期分隔线
+        if (prevDate !== null) {
+          document.getElementById('messageList').innerHTML = '<div class="date-separator"><span>' + prevDate + '</span></div>' + document.getElementById('messageList').innerHTML;
+        }
         // 只有新消息来了才自动滚动，周期性刷新不滚动
         if (isNew) scrollToBottom(false);
       });
